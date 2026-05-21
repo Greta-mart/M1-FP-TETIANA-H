@@ -151,6 +151,23 @@ class MainTest {
                 assertTrue(Files.exists(bruteForcedFile), "Decrypted file was not created");
             }
         }
+
+        @Nested
+        @DisplayName("DECRYPT filename transformation")
+        class DecryptFilenameTransformation {
+
+            @Test
+            @DisplayName("decrypting foo [ENCRYPTED].txt produces foo [DECRYPTED].txt (not double-suffixed)")
+            void replacesEncryptedMarker() {
+                Path encrypted = execute(ENCRYPT_COMMAND, inputFilePathEN, 5);
+                Path decrypted = execute(DECRYPT_COMMAND, encrypted, 5);
+                String decryptedName = decrypted.getFileName().toString();
+                assertTrue(decryptedName.contains("[DECRYPTED]"),
+                        "Expected '[DECRYPTED]' in name: " + decryptedName);
+                assertFalse(decryptedName.contains("[ENCRYPTED]"),
+                        "Decrypted file should not still carry '[ENCRYPTED]' marker: " + decryptedName);
+            }
+        }
     }
 
     @Nested
@@ -359,7 +376,7 @@ class MainTest {
 
         @DisplayName("Negative key should be validated")
         @ParameterizedTest
-        @CsvSource({"A, -1, Z", "a, -1, z", "Z, -25, A", "z, -25, a"})
+        @CsvSource({"A, -1, z", "a, -1, Z", "Z, -25, A", "z, -25, a"})
         void negativeKeyEncryption(String input, int key, String expected) throws IOException {
             Path testFile = createTestFile("testFile.txt", input);
 
@@ -377,6 +394,52 @@ class MainTest {
             String[] params = {ENCRYPT_COMMAND, "-f", fakeFilePath.toString(), "-k", "5"};
 
             assertDoesNotThrow(() -> Main.main(params), "Exception was thrown while processing a non-existent file path.");
+        }
+
+        @Test
+        @DisplayName("Missing -k is handled (no new file created, no exception)")
+        void missingKey() {
+            List<Path> before = listFiles(tempDir);
+            String[] params = {ENCRYPT_COMMAND, "-f", inputFilePathEN.toString()};
+            assertDoesNotThrow(() -> Main.main(params));
+            assertEquals(before, listFiles(tempDir),
+                    "No new file should be created when -k is missing");
+        }
+
+        @Test
+        @DisplayName("Missing -f is handled")
+        void missingFile() {
+            List<Path> before = listFiles(tempDir);
+            String[] params = {ENCRYPT_COMMAND, "-k", "5"};
+            assertDoesNotThrow(() -> Main.main(params));
+            assertEquals(before, listFiles(tempDir));
+        }
+
+        @Test
+        @DisplayName("Missing command is handled")
+        void missingCommand() {
+            List<Path> before = listFiles(tempDir);
+            String[] params = {"-k", "5", "-f", inputFilePathEN.toString()};
+            assertDoesNotThrow(() -> Main.main(params));
+            assertEquals(before, listFiles(tempDir));
+        }
+
+        @Test
+        @DisplayName("Unknown flag is handled")
+        void unknownFlag() {
+            List<Path> before = listFiles(tempDir);
+            String[] params = {ENCRYPT_COMMAND, "-x", "-k", "5", "-f", inputFilePathEN.toString()};
+            assertDoesNotThrow(() -> Main.main(params));
+            assertEquals(before, listFiles(tempDir));
+        }
+
+        @Test
+        @DisplayName("Non-numeric key is handled")
+        void nonNumericKey() {
+            List<Path> before = listFiles(tempDir);
+            String[] params = {ENCRYPT_COMMAND, "-k", "abc", "-f", inputFilePathEN.toString()};
+            assertDoesNotThrow(() -> Main.main(params));
+            assertEquals(before, listFiles(tempDir));
         }
     }
 }
