@@ -38,7 +38,7 @@ The starter today ships:
 |---|---|---|
 | 1 | Scope appetite | Medium overhaul (B) |
 | 2 | CLI convention | Keep option-style; document divergence from PDF (B) |
-| 3 | Brute-force scaffolding | Interface seam + stub with 2-line Javadoc hint (B) |
+| 3 | Brute-force scaffolding | Stub class with 2-line Javadoc hint (B, scaled down — see architecture notes) |
 | 4 | Test visibility | All tests visible (A) |
 | 5 | Special-character alphabet | Strict A–Z/a–z; pass-through for everything else (A) |
 
@@ -74,7 +74,7 @@ public class BruteForce {
 }
 ```
 
-No interface yet — the seam is the class itself. Adding `interface BruteForceStrategy` is the kind of premature abstraction that would crowd out the actual cryptanalysis work in a syntax-course assignment.
+No interface — the seam is the class itself. The option presented during brainstorming mentioned `interface BruteForceStrategy`, but on second look that adds ceremony without payoff: a single-method interface with one implementation is just a class with extra syntax, and would crowd out the actual cryptanalysis work in a syntax-course assignment.
 
 ### `file.EncryptedFileNamer` (new)
 
@@ -215,7 +215,7 @@ Change `mvn --batch-mode --update-snapshots test` to `mvn --batch-mode --update-
 
 ### Maven wrapper
 
-Add `./mvnw`, `./mvnw.cmd`, `.mvn/wrapper/maven-wrapper.properties`, `.mvn/wrapper/maven-wrapper.jar` via `mvn wrapper:wrapper`. README instructs students to use `./mvnw` so they don't need a local Maven install. Existing `.gitignore` already has the exception for the wrapper jar.
+Add `./mvnw`, `./mvnw.cmd`, `.mvn/wrapper/maven-wrapper.properties` via `mvn wrapper:wrapper` (requires Maven 3.7+; if the local Maven is older, generate the files from a fresh `mvn -N io.takari:maven:wrapper` or commit them from another machine). README instructs students to use `./mvnw` so they don't need a local Maven install. Existing `.gitignore` already has the exception for the wrapper jar.
 
 ## File-by-file summary
 
@@ -251,4 +251,4 @@ After implementation:
 3. Tests that *should* pass against the starter (the stub-tolerant ones): `EncryptEdgeCases`, original-file safety, encrypt-related tests.
 4. Tests that *should* fail against the starter (drive student work): every test that depends on `decrypt` or `bruteForce`. This is intentional — the failures *are* the assignment.
 5. `mvn -DukrainianLanguageTest=true test` enables the Ukrainian group; without the flag they're skipped.
-6. The produced jar runs: `java -jar target/GNEW-M1-FP-1.0-SNAPSHOT.jar -e -k 5 -f src/main/resources/input.txt` produces `input [ENCRYPTED].txt`.
+6. The produced jar runs: `java -jar target/GNEW-M1-FP-1.0-SNAPSHOT.jar -e -k 5 -f src/main/resources/input.txt` produces `src/main/resources/input [ENCRYPTED].txt` (the file lands in the same directory as the input).
