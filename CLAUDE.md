@@ -6,17 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **starter repository** for the JavaRush "Module 1. Java Syntax" final project (a Caesar-cipher cryptanalyzer). Students fork this repo, finish the implementation, and open a pull request back to the original. The full assignment spec (Ukrainian) lives at `src/main/resources/project-description.pdf` — that is the source of truth for requirements.
 
-The starter ships with a partial implementation: encryption works end-to-end, but decryption and brute force are not yet wired up in `Main`. The pre-existing tests in `MainTest` already cover the full feature set (encrypt / decrypt / brute force, English + optional Ukrainian, edge cases like negative keys and missing files) and are intended to drive the student's implementation.
+The starter ships with visible TODO seams: `Cypher.decrypt`, `BruteForce.bruteForce`, and the `DECRYPT` / `BRUTEFORCE` branches in `Main` all throw `UnsupportedOperationException`. `CHECKLIST.md` is the test-to-task map students follow.
 
 ## Build, test, run
 
-- Java 17 + Maven (no wrapper — use a system `mvn`).
-- Run all tests: `mvn test`
-- Run a single test class: `mvn -Dtest=MainTest test`
-- Run a single nested test method: `mvn -Dtest='MainTest$EnglishTests#decrypt' test`
-- Package a jar: `mvn package` (output in `target/`)
-- Run the app: `java -cp target/classes ua.com.javarush.gnew.Main <args>` (or via `java -jar` once a jar with a `Main-Class` manifest is configured — the starter `pom.xml` does **not** configure this yet).
-- CI: `.github/workflows/run_tests.yaml` runs `mvn test` on every push and publishes JUnit reports.
+- Java 17 + Maven wrapper (`./mvnw` — no local Maven install required).
+- Run all tests: `./mvnw test`
+- Run a single test class: `./mvnw -Dtest=CypherTest test`
+- Run a single nested group: `./mvnw -Dtest='MainTest$EnglishTests' test`
+- Run a single test method: `./mvnw -Dtest='MainTest$EnglishTests#encrypt' test`
+- Enable Ukrainian-bonus tests: `./mvnw -DukrainianLanguageTest=true test`
+- Package the runnable jar: `./mvnw package` (output `target/GNEW-M1-FP-1.0-SNAPSHOT.jar`)
+- Run the jar: `java -jar target/GNEW-M1-FP-1.0-SNAPSHOT.jar -e -k 5 -f path.txt`
+- CI: `.github/workflows/run_tests.yaml` runs `mvn package` on every push.
 
 ## CLI convention — important
 
@@ -34,26 +36,44 @@ Note that the PDF spec describes a different, **positional** convention (`ENCRYP
 
 ## Output file naming
 
-The encrypt path produces `<originalName> [ENCRYPTED].txt` in the same directory as the input. Decrypt and brute force are expected to produce `[DECRYPTED]` analogues (`MainTest` asserts the marker in the filename). `Main` currently hard-codes the `.length() - 4` suffix trim, which assumes a `.txt` extension.
+`EncryptedFileNamer` owns the `[ENCRYPTED]` / `[DECRYPTED]` suffix rules. `forEncrypted("foo.txt")` returns `foo [ENCRYPTED].txt`. `forDecrypted("foo [ENCRYPTED].txt")` returns `foo [DECRYPTED].txt` — it *swaps* the marker rather than appending blindly, so decrypted filenames don't double-suffix. Both methods assume the input ends in `.txt`.
 
 ## Architecture
 
 Single-module Maven project, package root `ua.com.javarush.gnew`:
 
-- `Main` — entry point. Today it only handles `Command.ENCRYPT`; the `if` chain for `DECRYPT` and `BRUTEFORCE` is the student's to add. Exceptions are caught and printed (the `fileNotExists` test pins this behavior — `Main.main` must not throw).
-- `crypto.Cypher` — Caesar cipher. Uses an `ArrayList<Character>` alphabet of A–Z + a–z and `Collections.rotate` to shift. Only `encrypt` is implemented; `decrypt` and any brute-force logic still need to be added (a common approach is `encrypt(text, -key)` for decrypt).
+- `Main` — entry point. `switch (command)` dispatches to ENCRYPT (working), DECRYPT and BRUTEFORCE (throw `UnsupportedOperationException` — student work). Exceptions are caught and printed (`Main.main` must not propagate — pinned by `ValidationTests`).
+- `crypto.Cypher` — Caesar cipher. `ArrayList<Character>` alphabet of A–Z + a–z, `Math.negateExact(key)` + `Collections.rotate`. `encrypt` works; `decrypt` is a stub.
+- `crypto.BruteForce` — single-method stub class. Students implement.
+- `file.EncryptedFileNamer` — owns the `[ENCRYPTED]` / `[DECRYPTED]` filename suffix rules.
 - `file.FileManager` — thin wrapper around `Files.readString` / `Files.writeString`.
-- `runner.ArgumentsParser` → `runner.RunOptions` (`command`, `key`, `filePath`) → consumed by `Main`. `Command` is an enum.
-- `language.Language` — abstract skeleton currently unused. Intended hook for the optional Ukrainian-alphabet extension (one of the bonus tasks in the PDF).
+- `runner.ArgumentsParser` → `runner.RunOptions` → consumed by `Main`. `Command` is an enum (`ENCRYPT`, `DECRYPT`, `BRUTEFORCE`).
+- `language.Language` + `language.EnglishLanguage` — minimal extension point for the optional Ukrainian-alphabet bonus. The core `Cypher` does NOT consume `Language` — kept hard-coded by design.
 
-## Test suite shape (`src/test/java/.../MainTest.java`)
+## Test suite shape
 
-- Drives the app by calling `Main.main(...)` with a `@TempDir` and asserts on the file the run creates (it diffs directory listings before/after).
-- Nested classes: `FileTests` (file creation + markers), `EnglishTests` (round-trips Hamlet excerpt, brute force), `UkrainianLanguageTest` (round-trips an Orwell excerpt — **gated by `UKRAINIAN_LANGUAGE_TEST = false`** at the top of `MainTest`; flip to `true` when implementing the Ukrainian bonus), `ValidationTests` (negative keys, non-existent file path).
-- Brute-force tests assume the brute-force output matches the original text exactly (case-sensitive `assertEquals` after an `equalsIgnoreCase` precheck), so the implementation must recover the true key, not just *some* readable shift.
+End-to-end tests live in `src/test/java/.../MainTest.java`. They drive `Main.main(...)` with a `@TempDir` and assert on the file the run creates (diffing directory listings before/after). Test fixtures (Hamlet, Orwell) live in `src/test/resources/hamlet.txt` and `orwell.txt`, loaded via `MainTest.loadResource`.
+
+Nested groups in `MainTest`:
+- `FileTests` — file creation, markers, `DecryptFilenameTransformation` (intentionally failing — depends on student-implemented DECRYPT).
+- `EnglishTests` — Hamlet round-trip + brute force.
+- `EncryptEdgeCases` — empty file, key=0/52/53/-52, special chars, multiline.
+- `OriginalFileSafety` — input file is unchanged after encrypt.
+- `UkrainianLanguageTest` — gated on `-DukrainianLanguageTest=true` system property.
+- `ValidationTests` — missing/unknown flags, non-numeric keys, non-existent file. All assert via "no new file appears in `@TempDir`".
+
+Focused unit-test classes (don't go through `Main.main`):
+- `CypherTest` — encrypt edge cases at unit level. Place students put their `decrypt` unit tests when they implement it.
+- `ArgumentsParserTest` — happy paths in arbitrary order + every error condition.
+- `EncryptedFileNamerTest` — filename transformation rules.
+
+Brute-force tests assume the result matches the original text exactly (case-sensitive). Students must recover the correct key, not just *some* readable shift.
 
 ## Working with this repo
 
-- The `pom.xml` is intentionally minimal (JUnit Jupiter 5.9.2, Surefire 3.4.0). Adding a `maven-jar-plugin` with a `Main-Class` manifest is fair game if you need a runnable jar — the PDF asks students to publish one in GitHub Releases.
-- `src/main/resources/input.txt` and `input [ENCRYPTED].txt` are sample fixtures for manual runs, not used by the automated tests.
-- Don't reformat the existing starter classes for cosmetic reasons — students are graded against this baseline and noisy diffs hurt review.
+- Maven wrapper is included — use `./mvnw test` rather than `mvn test`. First run downloads Maven into `~/.m2/wrapper/dists/`.
+- `pom.xml` configures `maven-jar-plugin` with `Main-Class: ua.com.javarush.gnew.Main`. `./mvnw package` produces a runnable jar in `target/`.
+- CI runs `mvn package` — fails (intentionally) until students implement enough to make all tests pass. CI being red on a student fork IS the signal.
+- `CHECKLIST.md` is the test-to-task map students follow. Keep it in sync if you add/remove tests.
+- `src/main/resources/input.txt` is a sample paragraph for manual `java -jar` testing — not used by automated tests.
+- Don't reformat the starter classes for cosmetic reasons. Students are graded against this baseline; noisy diffs hurt review.
