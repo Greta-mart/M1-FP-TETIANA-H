@@ -323,7 +323,7 @@ class MainTest {
 
         private static boolean isUkrainianLanguageTestEnabled() {
             // Enable via: mvn -DukrainianLanguageTest=true test
-            return Boolean.getBoolean("ukrainianLanguageTest");
+            return true;
         }
 
         @DisplayName("[ENCRYPT] Simple letters encoding")
