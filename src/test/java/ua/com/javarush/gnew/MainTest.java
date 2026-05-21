@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MainTest {
-    private static final boolean UKRAINIAN_LANGUAGE_TEST = false;
     private static final String ENCRYPT_COMMAND = "-e";
     private static final String DECRYPT_COMMAND = "-d";
     private static final String BF_COMMAND = "-bf";
@@ -322,7 +321,8 @@ class MainTest {
     class UkrainianLanguageTest {
 
         private static boolean isUkrainianLanguageTestEnabled() {
-            return UKRAINIAN_LANGUAGE_TEST;
+            // Enable via: mvn -DukrainianLanguageTest=true test
+            return Boolean.getBoolean("ukrainianLanguageTest");
         }
 
         @DisplayName("[ENCRYPT] Simple letters encoding")
