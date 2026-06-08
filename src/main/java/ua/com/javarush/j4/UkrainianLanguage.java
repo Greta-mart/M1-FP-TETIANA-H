@@ -13,19 +13,9 @@ public class UkrainianLanguage implements Language {
             'ш','щ','ь','ю','я'
     };
 
-    private static final String[] COMMON_WORDS = {
-            "що", "не", "та", "він", "вона", "але", "як", "це",
-            "від", "у", "в", "на", "до", "і", "тому", "була",
-            "його", "її", "ми", "ти", "за", "для", "все"
-    };
-
     @Override
     public char[] alphabet() {
         return ALPHABET;
     }
 
-    @Override
-    public String[] commonWords() {
-        return COMMON_WORDS;
-    }
 }

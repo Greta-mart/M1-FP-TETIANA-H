@@ -63,19 +63,6 @@ public class CaesarCipher {
         String lower = text.toLowerCase();
         double total = 0;
 
-        for (String word : language.commonWords()) {
-            int i = 0;
-            while ((i = lower.indexOf(word, i)) >= 0) {
-                boolean leftBoundary  = (i == 0)
-                        || !Character.isLetter(lower.charAt(i - 1));
-                boolean rightBoundary = (i + word.length() >= lower.length())
-                        || !Character.isLetter(lower.charAt(i + word.length()));
-                if (leftBoundary && rightBoundary) {
-                    total += word.length();
-                }
-                i++;
-            }
-        }
 
         int lowerCount = 0;
         int upperCount = 0;
