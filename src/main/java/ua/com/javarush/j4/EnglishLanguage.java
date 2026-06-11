@@ -14,7 +14,7 @@ public class EnglishLanguage implements Language {
     private static char[] buildAlphabet() {
         char[] a = new char[52];
         for (int i = 0; i < 26; i++) {
-            a[i]      = (char) ('A' + i);
+            a[i] = (char) ('A' + i);
             a[i + 26] = (char) ('a' + i);
         }
         return a;

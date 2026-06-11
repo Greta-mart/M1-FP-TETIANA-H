@@ -22,22 +22,50 @@ public class CaesarCipher {
         return applyShift(text, normalizeKey(-key));
     }
 
-    /** Brutforce the original text without knowing the key **/
     public String bruteForce(String text) {
         String bestCandidate = text;
         double bestScore = Double.NEGATIVE_INFINITY;
 
-        for (int key = 0; key < size; key++) {
-            String candidate = applyShift(text, key);
-            double s = score(candidate);
-            if (s > bestScore) {
-                bestScore     = s;
+        int alphabetSize = alphabet.length / 2; // 26 для EN, 33 для UA
+
+        for (int key = 0; key < alphabetSize; key++) {
+            String candidate = decrypt(text, key);
+            double score = score(candidate);
+
+            if (score > bestScore) {
+                bestScore = score;
                 bestCandidate = candidate;
             }
         }
+
         return bestCandidate;
     }
 
+    private double score(String text) {
+        String lower = text.toLowerCase();
+        double score = 0;
+
+        for (String word : language.commonWords()) {
+            int index = 0;
+
+            while ((index = lower.indexOf(word, index)) != -1) {
+                score += 10;
+                index += word.length();
+            }
+        }
+
+        for (char c : text.toCharArray()) {
+            if (c == ' ') {
+                score += 0.5;
+            }
+            if (c == '.' || c == ',' || c == '!' || c == '?' ||
+                    c == ';' || c == ':') {
+                score += 0.2;
+            }
+        }
+
+        return score;
+    }
     private String applyShift(String text, int normKey) {
         StringBuilder sb = new StringBuilder(text.length());
         for (char c : text.toCharArray()) {
@@ -57,28 +85,5 @@ public class CaesarCipher {
                 return i;
         }
         return -1;
-    }
-
-    private double score(String text) {
-        String lower = text.toLowerCase();
-        double total = 0;
-
-
-        int lowerCount = 0;
-        int upperCount = 0;
-        for (char c : text.toCharArray()) {
-            if (Character.isLetter(c)) {
-                if (Character.isLowerCase(c))
-                    lowerCount++;
-                else
-                    upperCount++;
-            }
-        }
-        int totalLetters = lowerCount + upperCount;
-        if (totalLetters > 0) {
-            total += (double) lowerCount / totalLetters * 3.0;
-        }
-
-        return total;
     }
 }
